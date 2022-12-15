@@ -107,6 +107,8 @@ func (p *PostsServiceInstance) AddInfoFromSource() error {
 	log.Println("Start AddInfoFromSource")
 	resp, err := http.Get(p.sourceXML)
 
+	var lastDateUnixMax int64 = 0
+
 	if err != nil {
 		p.ErrorChan <- err
 		return err
@@ -127,13 +129,12 @@ func (p *PostsServiceInstance) AddInfoFromSource() error {
 	rss := SourceRss{}
 	xml.Unmarshal(body, &rss)
 	for _, item := range rss.Channel.Items {
-		var pd time.Time
 		// Для разных форматов времени парсинг будет идти по разному
-		pd, err = time.Parse(time.RFC1123, item.PubTime)
+		pd, err := time.Parse(time.RFC1123Z, item.PubTime)
 
 		if err != nil {
 			p.ErrorChan <- err
-			pd, err = time.Parse(time.RFC1123Z, item.PubTime)
+			pd, err = time.Parse(time.RFC1123, item.PubTime)
 		}
 
 		// Проверяем актуальность новости. Чтобы не забивать бд дублями при перезапусках
@@ -145,9 +146,15 @@ func (p *PostsServiceInstance) AddInfoFromSource() error {
 				Link:          item.Link,
 				SourceXmlLink: p.sourceXML,
 			}
+			if lastDateUnixMax < post.PubTime {
+				lastDateUnixMax = post.PubTime
+			}
 			p.PostsChan <- post
-			p.LastPubDateUnix = post.PubTime
 		}
+	}
+
+	if lastDateUnixMax > p.LastPubDateUnix {
+		p.LastPubDateUnix = lastDateUnixMax
 	}
 
 	return nil

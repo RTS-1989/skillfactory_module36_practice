@@ -72,9 +72,11 @@ func main() {
 // runErrorsCheck читает ошибки из канало ошибок
 func runErrorsCheck(errChan chan error) {
 	go func() {
-		select {
-		case err := <-errChan:
-			log.Println(err)
+		for {
+			select {
+			case err := <-errChan:
+				log.Println(err)
+			}
 		}
 	}()
 }

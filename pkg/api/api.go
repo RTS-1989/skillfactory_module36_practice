@@ -32,6 +32,7 @@ func New(db storage.PostsInterface, errChan chan error) *API {
 // endpoints Регистрация обработчиков API.
 func (api *API) endpoints() {
 	log.Println("Register endpoints")
+	api.router.Use(api.HeadersMiddleware)
 	api.router.HandleFunc("/news/{n}", api.postsHandler).Methods(http.MethodGet, http.MethodOptions)
 	api.router.PathPrefix("/").Handler(http.StripPrefix("/", http.FileServer(http.Dir("./webapp"))))
 }
@@ -44,8 +45,6 @@ func (api *API) Router() *mux.Router {
 // postsHandler Получение опционального количества публикаций
 func (api *API) postsHandler(w http.ResponseWriter, r *http.Request) {
 	log.Println("Start request for posts")
-	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
 	countPosts, err := strconv.Atoi(strings.TrimPrefix(r.URL.Path, "/news/"))
 	if err != nil {
 		api.errChan <- err
