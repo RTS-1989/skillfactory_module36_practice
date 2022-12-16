@@ -44,6 +44,7 @@ func (api *API) Router() *mux.Router {
 
 // postsHandler Получение опционального количества публикаций
 func (api *API) postsHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	log.Println("Start request for posts")
 	countPosts, err := strconv.Atoi(strings.TrimPrefix(r.URL.Path, "/news/"))
 	if err != nil {
@@ -62,5 +63,8 @@ func (api *API) postsHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	w.Write(bytes)
+	_, err = w.Write(bytes)
+	if err != nil {
+		api.errChan <- err
+	}
 }

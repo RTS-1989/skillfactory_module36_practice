@@ -8,18 +8,19 @@ import (
 	"fmt"
 	"github.com/joho/godotenv"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"reflect"
 	"testing"
 	"time"
 )
 
-func TestAPI_postsHandler(t *testing.T) {
+func GetTestDb(errChan chan error) (*postgres.Storage, error) {
 	e := godotenv.Load("../../.env") //Загрузить файл .env
 	if e != nil {
-		fmt.Print(e)
+		log.Print(e)
+		return nil, e
 	}
 
 	username := os.Getenv("db_user")
@@ -34,9 +35,20 @@ func TestAPI_postsHandler(t *testing.T) {
 	defer cancel()
 
 	postsChan := make(chan storage.Post)
-	errChan := make(chan error)
 
-	db, _ := postgres.New(ctx, connString, postsChan, errChan)
+	db, err := postgres.New(ctx, connString, postsChan, errChan)
+
+	if err != nil {
+		log.Fatal(err)
+		return nil, e
+	}
+
+	return db, nil
+}
+
+func TestAPI_postsHandler(t *testing.T) {
+	errChan := make(chan error)
+	db, _ := GetTestDb(errChan)
 	api := New(db, errChan)
 
 	req := httptest.NewRequest(http.MethodGet, "/news/10", nil)
@@ -58,30 +70,9 @@ func TestAPI_postsHandler(t *testing.T) {
 	if err != nil {
 		t.Fatalf("не удалось раскодировать ответ сервера: %v", err)
 	}
-	// Проверяем, что в массиве ровно один элемент.
+	// Проверяем, что в массиве ровно 10 элементов.
 	const wantLen = 10
 	if len(data) != wantLen {
 		t.Fatalf("получено %d записей, ожидалось %d", len(data), wantLen)
-	}
-}
-
-func TestNew(t *testing.T) {
-	type args struct {
-		db      storage.PostsInterface
-		errChan chan error
-	}
-	tests := []struct {
-		name string
-		args args
-		want *API
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := New(tt.args.db, tt.args.errChan); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("New() = %v, want %v", got, tt.want)
-			}
-		})
 	}
 }

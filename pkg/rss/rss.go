@@ -4,6 +4,7 @@ import (
 	"GoNews/pkg/storage"
 	"encoding/json"
 	"encoding/xml"
+	strip "github.com/grokify/html-strip-tags-go"
 	"io"
 	"io/ioutil"
 	"log"
@@ -141,7 +142,7 @@ func (p *PostsServiceInstance) AddInfoFromSource() error {
 		if ok := p.checkDateActuality(pd); ok {
 			post := storage.Post{
 				Title:         item.Title,
-				Content:       item.Content,
+				Content:       strip.StripTags(item.Content),
 				PubTime:       pd.Unix(),
 				Link:          item.Link,
 				SourceXmlLink: p.sourceXML,

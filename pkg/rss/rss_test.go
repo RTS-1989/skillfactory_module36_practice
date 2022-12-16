@@ -2,10 +2,23 @@ package rss
 
 import (
 	"GoNews/pkg/storage"
+	"log"
 	"reflect"
 	"testing"
 	"time"
 )
+
+func readFromPostsChan(postsChan chan storage.Post) {
+	for item := range postsChan {
+		log.Println(item)
+	}
+}
+
+func readFromErrorChan(postsChan chan error) {
+	for item := range postsChan {
+		log.Println(item)
+	}
+}
 
 func TestNewPostsService(t *testing.T) {
 	type args struct {
@@ -116,6 +129,9 @@ func TestPostsServiceInstance_AddInfoFromSource(t *testing.T) {
 				ErrorChan:       tt.fields.ErrorChan,
 				RequestPeriod:   tt.fields.RequestPeriod,
 			}
+			// Читаем из каналов, иначе зависает
+			go readFromPostsChan(p.PostsChan)
+			go readFromErrorChan(p.ErrorChan)
 			if err := p.AddInfoFromSource(); err != tt.wantErr {
 				t.Errorf("AddInfoFromSource() error = %v, wantErr %v", err, tt.wantErr)
 			}

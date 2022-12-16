@@ -66,7 +66,11 @@ func main() {
 	srv.db.RunInsertPosts()
 	runErrorsCheck(errChan)
 
-	http.ListenAndServe(":8080", srv.api.Router())
+	err = http.ListenAndServe(":8081", srv.api.Router())
+	if err != nil {
+		errChan <- err
+		return
+	}
 }
 
 // runErrorsCheck читает ошибки из канало ошибок
